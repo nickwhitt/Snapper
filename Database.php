@@ -25,19 +25,40 @@ class Database {
 		return $this->tables;
 	}
 	
-	public function exportTable($table, $conf=NULL) {
+	public function exportTable($table, $conf=NULL, $path=NULL) {
 		exec(sprintf(
-			'/usr/bin/env mysqldump %s %s > %s.%s.sql',
-			is_null($conf) ? $this->database : sprintf('--defaults-file=%s %s', $conf, $this->database),
-			$table,
-			$this->database,
-			$table
+			'%s > %s',
+			$this->callMysqlDump($table, $conf),
+			$this->destinationFile($table, $path)
 		));
 	}
 	
-	public function exportTables($conf=NULL) {
+	public function exportTables($conf=NULL, $path=NULL) {
 		foreach ($this->tables as $table) {
-			$this->exportTable($table, $conf);
+			$this->exportTable($table, $conf, $path);
+		}
+	}
+	
+	protected function callMysqldump($table, $conf=NULL) {
+		return sprintf(
+			'/usr/bin/env mysqldump %s %s',
+			is_null($conf) ? $this->database : sprintf('--defaults-file=%s %s', $conf, $this->database),
+			$table
+		);
+	}
+	
+	protected function destinationFile($table, $path=NULL) {
+		$this->validatePath($path);
+		return sprintf(
+			'%s%s.sql',
+			is_null($path) ? sprintf('%s/', dirname(__FILE__)) : $path,
+			$table
+		);
+	}
+	
+	protected function validatePath($path=NULL, $mode=0750) {
+		if (!is_null($path) && !file_exists($path)) {
+			mkdir($path, $mode, TRUE);
 		}
 	}
 }
