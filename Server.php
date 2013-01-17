@@ -31,4 +31,22 @@ class Server {
 	public function getDatabase($database) {
 		return $this->databases[$database];
 	}
+	
+	public function exportDatabase($database, $conf=NULL, $path=NULL) {
+		$this->getDatabase($database)->exportTables($conf, $this->defaultFilepath($database, $path));
+	}
+	
+	public function exportDatabases($conf=NULL, $path=NULL) {
+		foreach ($this->getDatabases() as $database) {
+			$this->exportDatabase($database, $conf, $path);
+		}
+	}
+	
+	protected function defaultFilepath($database, $path=NULL) {
+		return sprintf(
+			'%s/%s/',
+			is_null($path) ? dirname(__FILE__) : $path,
+			$database
+		);
+	}
 }
