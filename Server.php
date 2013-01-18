@@ -9,22 +9,39 @@
 namespace Snapper;
 class Server {
 	protected $databases = array();
+	protected $excludes = array();
 	protected $conn;
 	
 	public function __construct($user, $pass, $host='localhost') {
 		$this->conn = new \PDO(sprintf('mysql:host=%s', $host), $user, $pass);
-		
-		$this->databases = array();
-		foreach ($this->conn->query('show databases', \PDO::FETCH_COLUMN, 0) as $database) {
-			$this->databases[$database] = new Database($database, $this->conn);
-		}
 	}
 	
 	public function __destruct() {
 		$this->conn = NULL;
 	}
 	
-	public function getDatabases() {
+	public function scanDatabases() {
+		$this->databases = array();
+		foreach ($this->conn->query('show databases', \PDO::FETCH_COLUMN, 0) as $database) {
+			if (!in_array($database, $this->excludes)) {
+				$this->databases[$database] = new Database($database, $this->conn);
+			}
+		}
+	}
+	
+	public function excludeDatabase($database) {
+		if (!in_array($database, $this->excludes)) {
+			$this->excludes[] = $database;
+		}
+	}
+	
+	public function excludeDatabases(array $databases) {
+		foreach ($databases as $database) {
+			$this->excludeDatabase($database);
+		}
+	}
+	
+	public function listDatabases() {
 		return array_keys($this->databases);
 	}
 	
@@ -37,7 +54,7 @@ class Server {
 	}
 	
 	public function exportDatabases($conf=NULL, $path=NULL) {
-		foreach ($this->getDatabases() as $database) {
+		foreach ($this->listDatabases() as $database) {
 			$this->exportDatabase($database, $conf, $path);
 		}
 	}
