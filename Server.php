@@ -1,7 +1,8 @@
 <?php
 /**
  * MySQL Snapshot Generation Tool
- * Server Encapsulation
+ *
+ * Provides database scanning and export methods on a MySQL server.
  *
  * @author Nick Whitt
  */
@@ -23,14 +24,14 @@ class Server {
 	public function scanDatabases() {
 		$this->databases = array();
 		foreach ($this->conn->query('show databases', \PDO::FETCH_COLUMN, 0) as $database) {
-			if (!in_array($database, $this->excludes)) {
+			if (!$this->isExcluded($database)) {
 				$this->databases[$database] = new Database($database, $this->conn);
 			}
 		}
 	}
 	
 	public function excludeDatabase($database) {
-		if (!in_array($database, $this->excludes)) {
+		if (!$this->isExcluded($database)) {
 			$this->excludes[] = $database;
 		}
 	}
@@ -39,6 +40,10 @@ class Server {
 		foreach ($databases as $database) {
 			$this->excludeDatabase($database);
 		}
+	}
+	
+	public function isExcluded($database) {
+		return in_array($database, $this->excludes);
 	}
 	
 	public function listDatabases() {
@@ -55,7 +60,9 @@ class Server {
 	
 	public function exportDatabases($conf=NULL, $path=NULL) {
 		foreach ($this->listDatabases() as $database) {
-			$this->exportDatabase($database, $conf, $path);
+			if (!$this->isExcluded($database)) {
+				$this->exportDatabase($database, $conf, $path);
+			}
 		}
 	}
 	

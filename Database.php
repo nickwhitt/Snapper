@@ -1,7 +1,8 @@
 <?php
 /**
  * MySQL Snapshot Generation Tool
- * Server Encapsulation
+ *
+ * Provides table scanning and export methods on a MySQL database.
  *
  * @author Nick Whitt
  */
@@ -9,11 +10,11 @@
 namespace Snapper;
 class Database {
 	protected $database;
-	protected $tables;
+	protected $tables = array();
+	protected $excludes = array();
 	
 	public function __construct($db, \PDO $pdo) {
 		$this->database = $db;
-		$this->tables = array();
 		
 		$pdo->query(sprintf('use %s', $this->database));
 		foreach ($pdo->query('show tables', \PDO::FETCH_COLUMN, 0) as $table) {
@@ -21,8 +22,24 @@ class Database {
 		}
 	}
 	
-	public function getTables() {
+	public function listTables() {
 		return $this->tables;
+	}
+	
+	public function excludeTable($table) {
+		if (!$this->isExcluded($table)) {
+			$this->excludes[] = $table;
+		}
+	}
+	
+	public function excludeTables(array $tables) {
+		foreach ($tables as $table) {
+			$this->excludeTable($table);
+		}
+	}
+	
+	public function isExcluded($table) {
+		return in_array($table, $this->excludes);
 	}
 	
 	public function exportTable($table, $conf=NULL, $path=NULL) {
@@ -35,7 +52,9 @@ class Database {
 	
 	public function exportTables($conf=NULL, $path=NULL) {
 		foreach ($this->tables as $table) {
-			$this->exportTable($table, $conf, $path);
+			if (!$this->isExcluded($table)) {
+				$this->exportTable($table, $conf, $path);
+			}
 		}
 	}
 	
